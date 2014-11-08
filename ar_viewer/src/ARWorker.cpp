@@ -13,9 +13,10 @@
 
 #define DEBUG(s) std::cout << __FUNCTION__ << " " << s << std::endl;
 
-ARWorker::ARWorker(ARViewer* viewer) {
-	imageStream = new lsd_slam::ROSImageStreamThread();
+ARWorker::ARWorker(ARViewer* viewer,lsd_slam::ROSImageStreamThread* imageStream) {
+	this->imageStream = imageStream;
 	this->viewer = viewer;
+	imageStream->getBuffer()->setReceiver(this);
 }
 
 ARWorker::~ARWorker() {
@@ -30,7 +31,7 @@ void ARWorker::addFrameMsg(ar_viewer::keyframeMsgConstPtr msg){
 
 }
 void ARWorker::Loop(){
-	imageStream->run();
+
 	while (true) {
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
 		while (!(imageStream->getBuffer()->size() > 0)) {

@@ -38,8 +38,11 @@
 namespace lsd_slam{
 	std::string packagePath = "";
 }
+
+
 ARViewer* viewer = 0;
 ARWorker* worker = 0;
+lsd_slam::ROSImageStreamThread* imagestream = 0;
 
 void dynConfCb(ar_viewer::ARViewerParamsConfig &config, uint32_t level)
 {
@@ -105,6 +108,8 @@ void rosThreadLoop( int argc, char** argv )
 	ros::Subscriber keyFrames_sub = nh.subscribe(nh.resolveName("lsd_slam/keyframes"),20, frameCb);
 	ros::Subscriber graph_sub       = nh.subscribe(nh.resolveName("lsd_slam/graph"),10, graphCb);
 
+	imagestream = new lsd_slam::ROSImageStreamThread();
+
 	ros::spin();
 
 	ros::shutdown();
@@ -114,10 +119,11 @@ void rosThreadLoop( int argc, char** argv )
 	exit(1);
 }
 
-void workerThreadLoop(int argc, char** argv )
+void workerThreadLoop( )
 {
 
-	if(worker) worker->Loop();
+	if(worker)
+		worker->Loop();
 
 	printf("Exiting Cam thread\n");
 
@@ -126,16 +132,18 @@ void workerThreadLoop(int argc, char** argv )
 
 int main( int argc, char** argv )
 {
-	viewer = new ARViewer();
-	worker = new ARWorker(viewer);
+
 	// start ROS thread
 	boost::thread rosThread = boost::thread(rosThreadLoop, argc, argv);
-	boost::thread workerThread = boost::thread(workerThreadLoop, argc, argv);
-
 
 	printf("Started QApplication thread\n");
 	// Read command lines arguments.
 	QApplication application(argc,argv);
+
+	viewer = new ARViewer();
+	worker = new ARWorker(viewer,imagestream);
+
+	boost::thread workerThread = boost::thread(workerThreadLoop);
 
 	// Instantiate the viewer.
 	//viewer = new PointCloudViewer();

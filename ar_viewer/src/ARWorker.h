@@ -17,7 +17,7 @@ class ARViewer;
 
 class ARWorker: public lsd_slam::Notifiable {
 public:
-	ARWorker(ARViewer* viewer);
+	ARWorker(ARViewer* viewer,lsd_slam::ROSImageStreamThread* imageStream);
 	virtual ~ARWorker();
 	void Loop();
 	void addPoseMsg(geometry_msgs::PoseStampedConstPtr msg);
@@ -25,7 +25,6 @@ public:
 private:
 	lsd_slam::ROSImageStreamThread* imageStream;
 	ARViewer* viewer;
-
 };
 
 //keyframeMsg_()
