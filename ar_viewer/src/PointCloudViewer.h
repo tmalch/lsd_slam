@@ -31,6 +31,7 @@
 #include "ar_viewer/keyframeGraphMsg.h"
 
 #include "QGLViewer/keyFrameInterpolator.h"
+#include "ARViewer.h"
 
 class QApplication;
 
@@ -178,7 +179,6 @@ private:
 
 	// displays only current keyframe (which is not yet in the graph).
 	KeyFrameDisplay* currentCamDisplay;
-
 
 
 	// meddle mutex

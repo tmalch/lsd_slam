@@ -8,7 +8,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  Release        : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-set(ROS_BUILD_TYPE Release)
+set(ROS_BUILD_TYPE Debug)
 
 rosbuild_init()
 
@@ -23,7 +23,8 @@ set(QT_USE_QTOPENGL TRUE)
 set(QT_USE_QTXML TRUE)
 find_package(QGLViewer REQUIRED)
 find_package(Eigen3 REQUIRED)
-include_directories(${QT_INCLUDES} ${EIGEN3_INCLUDE_DIR} ${QGLVIEWER_INCLUDE_DIR})
+
+include_directories(${QT_INCLUDES} ${EIGEN3_INCLUDE_DIR} ${QGLVIEWER_INCLUDE_DIR} ${PROJECT_SOURCE_DIR}/../lsd_slam_core/src)
 
 rosbuild_find_ros_package(dynamic_reconfigure)
 include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
@@ -40,8 +41,9 @@ rosbuild_genmsg()
 # SSE flags
 rosbuild_check_for_sse()
 set(CMAKE_CXX_FLAGS
-   "${SSE_FLAGS}"
+   "${SSE_FLAGS} -std=c++0x"
 )
+
 
 # SSE Sources files
 set(SOURCE_FILES         
@@ -49,6 +51,11 @@ set(SOURCE_FILES
   src/KeyFrameDisplay.cpp
   src/KeyFrameGraphDisplay.cpp
   src/settings.cpp
+  src/ARViewer.cpp
+  src/ARWorker.cpp
+  ${PROJECT_SOURCE_DIR}/../lsd_slam_core/src/IOWrapper/Timestamp.cpp
+  ${PROJECT_SOURCE_DIR}/../lsd_slam_core/src/IOWrapper/ROS/ROSImageStreamThread.cpp
+  ${PROJECT_SOURCE_DIR}/../lsd_slam_core/src/util/Undistorter.cpp
 )
 
 set(HEADER_FILES     
@@ -56,6 +63,8 @@ set(HEADER_FILES
   src/KeyFrameDisplay.h
   src/KeyFrameGraphDisplay.h
   src/settings.h
+  src/ARViewer.h
+  src/ARWorker.h
 )
 
 include_directories(

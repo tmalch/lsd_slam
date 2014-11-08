@@ -240,7 +240,6 @@ void PointCloudViewer::draw()
 
 	graphDisplay->draw();
 
-
 	glPopMatrix();
 
 	meddleMutex.unlock();

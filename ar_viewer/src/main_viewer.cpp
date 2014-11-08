@@ -23,7 +23,8 @@
 #include "boost/thread.hpp"
 #include "settings.h"
 #include "PointCloudViewer.h"
-
+#include "ARViewer.h"
+#include "ARWorker.h"
 #include <dynamic_reconfigure/server.h>
 #include "ar_viewer/ARViewerParamsConfig.h"
 #include <qapplication.h>
@@ -32,10 +33,13 @@
 #include "ar_viewer/keyframeGraphMsg.h"
 #include "ar_viewer/keyframeMsg.h"
 
+#include "geometry_msgs/PoseStamped.h"
 
-
-PointCloudViewer* viewer = 0;
-
+namespace lsd_slam{
+	std::string packagePath = "";
+}
+ARViewer* viewer = 0;
+ARWorker* worker = 0;
 
 void dynConfCb(ar_viewer::ARViewerParamsConfig &config, uint32_t level)
 {
@@ -61,20 +65,24 @@ void dynConfCb(ar_viewer::ARViewerParamsConfig &config, uint32_t level)
 
 }
 
+void poseCb(geometry_msgs::PoseStampedConstPtr msg)
+{
+	if(worker != 0)
+		worker->addPoseMsg(msg);
+}
 void frameCb(ar_viewer::keyframeMsgConstPtr msg)
 {
 
 	if(msg->time > lastFrameTime) return;
 
-	if(viewer != 0)
-		viewer->addFrameMsg(msg);
+	if(worker != 0)
+		worker->addFrameMsg(msg);
 }
 void graphCb(ar_viewer::keyframeGraphMsgConstPtr msg)
 {
-	if(viewer != 0)
-		viewer->addGraphMsg(msg);
+//	if(worker != 0)
+//		worker->addGraphMsg(msg);
 }
-
 
 
 void rosThreadLoop( int argc, char** argv )
@@ -92,6 +100,7 @@ void rosThreadLoop( int argc, char** argv )
 
 	ros::NodeHandle nh;
 
+	ros::Subscriber pose_sub = nh.subscribe(nh.resolveName("lsd_slam/pose"),1, poseCb);
 	ros::Subscriber liveFrames_sub = nh.subscribe(nh.resolveName("lsd_slam/liveframes"),1, frameCb);
 	ros::Subscriber keyFrames_sub = nh.subscribe(nh.resolveName("lsd_slam/keyframes"),20, frameCb);
 	ros::Subscriber graph_sub       = nh.subscribe(nh.resolveName("lsd_slam/graph"),10, graphCb);
@@ -105,20 +114,31 @@ void rosThreadLoop( int argc, char** argv )
 	exit(1);
 }
 
+void workerThreadLoop(int argc, char** argv )
+{
+
+	if(worker) worker->Loop();
+
+	printf("Exiting Cam thread\n");
+
+	exit(1);
+}
 
 int main( int argc, char** argv )
 {
-
+	viewer = new ARViewer();
+	worker = new ARWorker(viewer);
 	// start ROS thread
 	boost::thread rosThread = boost::thread(rosThreadLoop, argc, argv);
+	boost::thread workerThread = boost::thread(workerThreadLoop, argc, argv);
+
 
 	printf("Started QApplication thread\n");
 	// Read command lines arguments.
 	QApplication application(argc,argv);
 
 	// Instantiate the viewer.
-	viewer = new PointCloudViewer();
-
+	//viewer = new PointCloudViewer();
 	#if QT_VERSION < 0x040000
 		// Set the viewer as the application main widget.
 		application.setMainWidget(viewer);

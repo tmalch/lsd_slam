@@ -46,7 +46,7 @@ void KeyFrameGraphDisplay::draw()
 	numRefreshedAlready = 0;
 
 	// draw keyframes
-	float color[3] = {0,0,1};
+	float color[3] = {0,1,1};
 	for(unsigned int i=0;i<keyframes.size();i++)
 	{
 		if(showKFCameras)
