@@ -8,22 +8,23 @@
 #ifndef ARWORKER_H_
 #define ARWORKER_H_
 
-#include "../../lsd_slam_core/src/IOWrapper/NotifyBuffer.h"
-#include "../../lsd_slam_core/src/IOWrapper/ROS/ROSImageStreamThread.h"
+#include "IOWrapper/NotifyBuffer.h"
+#include "IOWrapper/TimestampedObject.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "ar_viewer/keyframeMsg.h"
 
 class ARViewer;
+using lsd_slam::TimestampedMat;
 
 class ARWorker: public lsd_slam::Notifiable {
 public:
-	ARWorker(ARViewer* viewer,lsd_slam::ROSImageStreamThread* imageStream);
+	ARWorker(ARViewer* viewer,lsd_slam::NotifyBuffer<TimestampedMat>* imageStream);
 	virtual ~ARWorker();
 	void Loop();
 	void addPoseMsg(geometry_msgs::PoseStampedConstPtr msg);
 	void addFrameMsg(ar_viewer::keyframeMsgConstPtr msg); // has more information about frame eg camToWorld matrix
 private:
-	lsd_slam::ROSImageStreamThread* imageStream;
+	lsd_slam::NotifyBuffer<TimestampedMat>* imageStream;
 	ARViewer* viewer;
 };
 

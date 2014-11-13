@@ -13,15 +13,15 @@
 
 #define DEBUG(s) std::cout << __FUNCTION__ << " " << s << std::endl;
 
-ARWorker::ARWorker(ARViewer* viewer,lsd_slam::ROSImageStreamThread* imageStream) {
+ARWorker::ARWorker(ARViewer* viewer,lsd_slam::NotifyBuffer<TimestampedMat>* imageStream) {
 	this->imageStream = imageStream;
 	this->viewer = viewer;
-	imageStream->getBuffer()->setReceiver(this);
+	imageStream->setReceiver(this);
 }
 
 ARWorker::~ARWorker() {
-	delete imageStream;
 }
+
 void ARWorker::addPoseMsg(geometry_msgs::PoseStampedConstPtr msg){
 	msg->pose.orientation;
 	msg->pose.position;
@@ -33,14 +33,15 @@ void ARWorker::addFrameMsg(ar_viewer::keyframeMsgConstPtr msg){
 void ARWorker::Loop(){
 
 	while (true) {
-		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
-		while (!(imageStream->getBuffer()->size() > 0)) {
+		// wait for new image
+		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getMutex());
+		while (!(imageStream->size() > 0)) {
 			notifyCondition.wait(waitLock);
 		}
 		waitLock.unlock();
-
-		lsd_slam::TimestampedMat image = imageStream->getBuffer()->first();
-		imageStream->getBuffer()->popFront();
+		// retrieve new image
+		TimestampedMat image = imageStream->first();
+		imageStream->popFront();
 
 		cv::Mat img = image.data;
 		lsd_slam::Timestamp imgTime = image.timestamp;

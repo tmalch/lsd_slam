@@ -25,6 +25,9 @@
 #include "PointCloudViewer.h"
 #include "ARViewer.h"
 #include "ARWorker.h"
+#include "IOWrapper/NotifyBuffer.h"
+#include "IOWrapper/TimestampedObject.h"
+#include "IOWrapper/ROS/ROSImageStreamThread.h"
 #include <dynamic_reconfigure/server.h>
 #include "ar_viewer/ARViewerParamsConfig.h"
 #include <qapplication.h>
@@ -39,10 +42,11 @@ namespace lsd_slam{
 	std::string packagePath = "";
 }
 
-
-ARViewer* viewer = 0;
-ARWorker* worker = 0;
-lsd_slam::ROSImageStreamThread* imagestream = 0;
+using lsd_slam::TimestampedMat;
+using lsd_slam::NotifyBuffer;
+ARViewer* viewer = nullptr;
+ARWorker* worker = nullptr;
+NotifyBuffer<TimestampedMat>* imagebuffer = nullptr;
 
 void dynConfCb(ar_viewer::ARViewerParamsConfig &config, uint32_t level)
 {
@@ -91,9 +95,7 @@ void graphCb(ar_viewer::keyframeGraphMsgConstPtr msg)
 void rosThreadLoop( int argc, char** argv )
 {
 	printf("Started ROS thread\n");
-
 	//glutInit(&argc, argv);
-
 	ros::init(argc, argv, "viewer");
 	ROS_INFO("ar_viewer started");
 
@@ -108,8 +110,18 @@ void rosThreadLoop( int argc, char** argv )
 	ros::Subscriber keyFrames_sub = nh.subscribe(nh.resolveName("lsd_slam/keyframes"),20, frameCb);
 	ros::Subscriber graph_sub       = nh.subscribe(nh.resolveName("lsd_slam/graph"),10, graphCb);
 
-	imagestream = new lsd_slam::ROSImageStreamThread();
-
+	lsd_slam::ROSImageStreamThread imagesource = lsd_slam::ROSImageStreamThread();
+	std::string calibFile;
+	setlocale(LC_NUMERIC, "C");
+	if(ros::param::get("~calib", calibFile))
+	{
+		ros::param::del("~calib");
+		imagesource.setCalibration(calibFile);
+	}
+	else{
+		imagesource.setCalibration("");
+	}
+	imagebuffer = imagesource.getBuffer();
 	ros::spin();
 
 	ros::shutdown();
@@ -133,16 +145,15 @@ void workerThreadLoop( )
 int main( int argc, char** argv )
 {
 
-	// start ROS thread
-	boost::thread rosThread = boost::thread(rosThreadLoop, argc, argv);
 
+	// start ROS thread waits for input at ROS ports and executes the callbacks
+	boost::thread rosThread = boost::thread(rosThreadLoop, argc, argv);
 	printf("Started QApplication thread\n");
-	// Read command lines arguments.
 	QApplication application(argc,argv);
 
 	viewer = new ARViewer();
-	worker = new ARWorker(viewer,imagestream);
-
+	worker = new ARWorker(viewer,imagebuffer);
+	//Worker Thread waits on input from imagebuffer and gets input from the ROSthread
 	boost::thread workerThread = boost::thread(workerThreadLoop);
 
 	// Instantiate the viewer.

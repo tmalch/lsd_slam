@@ -108,9 +108,6 @@ UndistorterPTAM::UndistorterPTAM(const char* configFileName)
 	std::getline(infile,l3);
 	std::getline(infile,l4);
 
-
-
-
 	// l1 & l2
 	if(std::sscanf(l1.c_str(), "%f %f %f %f %f", &inputCalibration[0], &inputCalibration[1], &inputCalibration[2], &inputCalibration[3], &inputCalibration[4]) == 5 &&
 			std::sscanf(l2.c_str(), "%d %d", &in_width, &in_height) == 2)

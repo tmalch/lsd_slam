@@ -54,7 +54,6 @@ ROSImageStreamThread::ROSImageStreamThread()
 
 	haveCalib = false;
 	undistorter = 0;
-
 }
 
 ROSImageStreamThread::~ROSImageStreamThread()
