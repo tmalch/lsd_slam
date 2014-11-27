@@ -6,10 +6,10 @@
  */
 
 #include "ARViewer.h"
+#define DEBUG(s) std::cout << __FUNCTION__ << " " << s << std::endl;
 
 ARViewer::ARViewer() {
-	// TODO Auto-generated constructor stub
-
+	current_img = cv::Mat(640,480,CV_8UC3, cv::Scalar(0,0,50));
 }
 
 ARViewer::~ARViewer() {
@@ -17,64 +17,75 @@ ARViewer::~ARViewer() {
 }
 void ARViewer::setImage(const cv::Mat& image){
 	boost::lock_guard<boost::mutex> guard(dataMutex);
-	current_img = image;
+	cv::cvtColor(image,current_img,CV_GRAY2RGB);
 }
 void ARViewer::draw(){
+
 	renderBackgroundGL();
+
+	const float nbSteps = 200.0;
+
+	glBegin(GL_QUAD_STRIP);
+	for (float i=0; i<nbSteps; ++i)
+	{
+	  float ratio = i/nbSteps;
+	  float angle = 21.0*ratio;
+	  float c = cos(angle);
+	  float s = sin(angle);
+	  float r1 = 1.0 - 0.8*ratio;
+	  float r2 = 0.8 - 0.8*ratio;
+	  float alt = ratio - 0.5;
+	  const float nor = .5;
+	  const float up = sqrt(1.0-nor*nor);
+	  glColor3f(1.0-ratio, 0.2f , ratio);
+	  glNormal3f(nor*c, up, nor*s);
+	  glVertex3f(r1*c, alt, r1*s);
+	  glVertex3f(r2*c, alt+0.05, r2*s);
+	}
+	glEnd();
+
 }
 void ARViewer::init(){
-	static bool textureGenerated = false;
-	if (!textureGenerated)
-	{
-		glGenTextures(1, &textureId);
-		glBindTexture(GL_TEXTURE_2D, textureId);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		textureGenerated = true;
-	}
-}
-void ARViewer::renderBackgroundGL()//https://github.com/DineshKannan/OpenCV-OpenGL-AugmentedReality/blob/master/Hand-OpenGL.cpp
-{
-	init();
-	GLint polygonMode[2];
-	glGetIntegerv(GL_POLYGON_MODE, polygonMode);
-	glPolygonMode(GL_FRONT, GL_FILL);
-	glPolygonMode(GL_BACK, GL_FILL);
-	glLoadIdentity();
-	gluOrtho2D(0.0, 1.0, 0.0, 1.0);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
 
-	// Copy the image to the texture.
+	glGenTextures(1, &textureId);
+	glBindTexture(GL_TEXTURE_2D, textureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+
+	setAnimationPeriod(1000/30);
+	startAnimation();
+}
+void ARViewer::renderBackgroundGL()
+{
+
 	glBindTexture(GL_TEXTURE_2D, textureId);
 	{
 		boost::lock_guard<boost::mutex> guard(dataMutex);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, current_img.size().width, current_img.size().height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, current_img.data);
+		if(current_img.data != nullptr){
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, current_img.cols, current_img.rows, 0,   GL_BGR , GL_UNSIGNED_BYTE, current_img.data);
+		}
 	}
-	// Draw the image.
+	glDisable(GL_LIGHTING);
 	glEnable(GL_TEXTURE_2D);
-	glBegin(GL_TRIANGLES);
-	glNormal3f(0.0, 0.0, 1.0);
-	glTexCoord2f(0.0, 1.0);
-	glVertex3f(0.0, 0.0, 0.0);
-	glTexCoord2f(0.0, 0.0);
-	glVertex3f(0.0, 1.0, 0.0);
-	glTexCoord2f(1.0, 1.0);
-	glVertex3f(1.0, 0.0, 0.0);
-	glTexCoord2f(1.0, 1.0);
-	glVertex3f(1.0, 0.0, 0.0);
-	glTexCoord2f(0.0, 0.0);
-	glVertex3f(0.0, 1.0, 0.0);
-	glTexCoord2f(1.0, 0.0);
-	glVertex3f(1.0, 1.0, 0.0);
+
+	startScreenCoordinatesSystem(true);
+
+	// Draws the background quad
+	glColor3f(1,1,1); //important
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 1.0);	glVertex2i(0,0);
+	glTexCoord2f(0.0,   0.0);	glVertex2i(0,height());
+	glTexCoord2f(1.0, 0.0);		glVertex2i(width(),height());
+	glTexCoord2f(1.0, 1.0);	glVertex2i(width(),0);
 	glEnd();
-	glDisable(GL_TEXTURE_2D);
-	// Clear the depth buffer so the texture forms the background.
+
+	stopScreenCoordinatesSystem();
+
 	glClear(GL_DEPTH_BUFFER_BIT);
-	// Restore the polygon mode state.
-	glPolygonMode(GL_FRONT, polygonMode[0]);
-	glPolygonMode(GL_BACK, polygonMode[1]);
+	glDisable(GL_TEXTURE_2D);
+	glEnable(GL_LIGHTING);
+
 }
 

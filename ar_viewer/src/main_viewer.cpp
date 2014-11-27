@@ -122,8 +122,8 @@ void rosThreadLoop( int argc, char** argv )
 		imagesource.setCalibration("");
 	}
 	imagebuffer = imagesource.getBuffer();
-	ros::spin();
 
+	ros::spin();
 	ros::shutdown();
 
 	printf("Exiting ROS thread\n");

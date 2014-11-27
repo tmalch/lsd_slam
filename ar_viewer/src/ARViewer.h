@@ -11,6 +11,7 @@
 #include "QGLViewer/qglviewer.h"
 #include "ar_viewer/keyframeMsg.h"
 #include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "boost/thread.hpp"
 
 class ARViewer: public QGLViewer {
