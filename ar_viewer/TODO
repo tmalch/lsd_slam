@@ -1,0 +1,20 @@
+
+
+
+syncronize images and positions (thomas)
+
+find a surface and intersection with line of sight for object
+
+set openGL camera to the position from the image (maybe there is some transformation)
+
+
+-------------------------------------------------
+
+Malcher(img, pos)
+	David(Tadej(img+pos, pointcloud), img+pos)    
+	
+Tadej(img+pos, pointCloud)
+	ret intersection
+	
+David(intersection, img+pos)
+	draw()
